@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Godot;
 
 namespace LibreKO;
@@ -7,7 +7,7 @@ public partial class World
 {
     private static float LauncherButtonSize => HudPlacement.LauncherButtonSize;
     private const float LauncherGap = 4f;
-    private const int LauncherSlots = 7;
+    private const int LauncherSlots = 8;
 
     private CanvasLayer _hudLauncherLayer = null!;
     private HBoxContainer _hudLauncher = null!;
@@ -18,6 +18,7 @@ public partial class World
     {
         _hudLauncherLayer = new CanvasLayer { Layer = 67 };
         AddChild(_hudLauncherLayer);
+        PluginHudSeam(_hudLauncherLayer, HudPart.Launcher);
 
         _hudLauncher = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Stop };
         _hudLauncher.AddThemeConstantOverride("separation", (int)LauncherGap);
@@ -40,6 +41,8 @@ public partial class World
             "system/gift", "Lottery Event", ToggleLottery));
         _hudLauncher.AddChild(LauncherButton(
             "system/users-three", "Party", ToggleParty));
+        _hudLauncher.AddChild(LauncherButton(
+            "system/sparkle", "Genie (Numpad +)", ToggleGenie));
 
         if (Platform.TouchUi)
         {
