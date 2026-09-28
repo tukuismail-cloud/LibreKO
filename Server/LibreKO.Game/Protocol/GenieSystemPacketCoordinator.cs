@@ -1,4 +1,4 @@
-﻿using LibreKO.Common.Infrastructure.Network;
+using LibreKO.Common.Infrastructure.Network;
 using LibreKO.Game.Protocol.Writers;
 using LibreKO.Game.World;
 using Microsoft.Extensions.Logging;
@@ -50,6 +50,7 @@ public class GenieSystemPacketCoordinator(
             case GenieSystemPacketWriter.LoadOptions:
                 await session.Client.SendPacket(
                     GenieSystemPacketWriter.Options(session.GenieOptions));
+                await session.Client.SendPacket(GenieSystemPacketWriter.Remaining(session.GenieMinutes));
                 break;
             case GenieSystemPacketWriter.SaveOptions:
                 SaveOptions(session, packet);
@@ -65,14 +66,17 @@ public class GenieSystemPacketCoordinator(
 
     public async Task StartAsync(UserSession session)
     {
-        if (session.GenieMinutes == 0)
+        if (session.GenieMinutes == 0 || session.Hp <= 0)
         {
             await StopAsync(session);
             return;
         }
 
         if (session.GenieActive)
+        {
+            await session.Client.SendPacket(GenieSystemPacketWriter.Started(session.GenieMinutes));
             return;
+        }
 
         session.GenieActive = true;
         await session.Client.SendPacket(GenieSystemPacketWriter.Started(session.GenieMinutes));
@@ -91,7 +95,7 @@ public class GenieSystemPacketCoordinator(
 
     private async Task RelayAsync(IClient client, UserSession session, Packet packet)
     {
-        if (session.GenieMinutes == 0)
+        if (!session.GenieActive || session.GenieMinutes == 0 || session.Hp <= 0)
         {
             await StopAsync(session);
             return;
@@ -120,7 +124,10 @@ public class GenieSystemPacketCoordinator(
     private async Task UseSpiritPotionAsync(UserSession session)
     {
         if (!await itemUsage.TryConsumeItemAsync(session, SpiritOfGenieItem))
+        {
+            await session.Client.SendPacket(GenieSystemPacketWriter.Remaining(session.GenieMinutes));
             return;
+        }
 
         var standing = session.GenieExpiry > DateTime.UtcNow
             ? session.GenieExpiry!.Value
